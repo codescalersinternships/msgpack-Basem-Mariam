@@ -1,9 +1,5 @@
 package msgpack
 
-import (
-	"bufio"
-	"io"
-)
 
 const (
 	NIL = 0xc0
