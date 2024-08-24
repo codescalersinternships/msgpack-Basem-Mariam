@@ -1,5 +1,10 @@
 package msgpack
 
+import (
+	"bufio"
+	"io"
+)
+
 const (
 	NIL = 0xc0
 
@@ -48,3 +53,4 @@ const (
 	SPECIAL_INT32 = 2 << (16 - 2)
 	SPECIAL_INT64 = 2 << (32 - 2)
 )
+
