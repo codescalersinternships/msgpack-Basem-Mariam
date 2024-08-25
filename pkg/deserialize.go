@@ -4,56 +4,42 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 )
 
-type Value struct {
-	typ string
-	val any
-}
-
-type MessagePacker struct {
-	reader *bufio.Reader
-}
-
-func NewMessagePacker(rd io.Reader) *MessagePacker {
-	return &MessagePacker{reader: bufio.NewReader(rd)}
-}
-
-func (m *MessagePacker) deserialize() (Value, error) {
-	_type, err := m.reader.ReadByte()
+func Deserialize(reader io.Reader) (any, error) {
+	bufReader := bufio.NewReader(reader)
+	_type, err := bufReader.ReadByte()
 	if err != nil {
-		return Value{}, err
+		return nil, err
 	}
 
-	switch _type {
-	case INT8, INT16, INT32, INT64:
-		return m.deserializeInteger(_type)
-	case NIL:
-		return m.deserializeNil()
-	case FALSE, TRUE:
-		return m.deserializeBool(_type)
-	case FLOAT, DOUBLE:
-		return m.deserializeFloat(_type)
-	case RAW8, RAW16, RAW32:
-		return m.deserializeString(_type)
-	case UINT8, UINT16, UINT32, UINT64:
-		return m.deserializeUnsignedInteger(_type)
-	case ARRAY16, ARRAY32:
-		return m.deserializeArray(_type)
-	case MAP16, MAP32:
-		return m.deserializeMap(_type)
+	switch {
+	case _type == INT8 || _type == INT16 || _type == INT32 || _type == INT64:
+		return DeserializeInteger(bufReader, _type)
+	case _type == NIL:
+		return DeserializeNil()
+	case _type == FALSE || _type == TRUE:
+		return DeserializeBool(_type)
+	case _type == FLOAT || _type == DOUBLE:
+		return DeserializeFloat(bufReader, _type)
+	case (_type >= FIXRAW && _type <= 0xbf) || _type == RAW8 || _type == RAW16 || _type == RAW32:
+		return DeserializeString(bufReader, _type)
+	case _type == UINT8 || _type == UINT16 || _type == UINT32 || _type == UINT64:
+		return DeserializeUnsignedInteger(bufReader, _type)
+	case (_type >= FIXARRAY && _type <= 0x9F) || _type == ARRAY16 || _type == ARRAY32:
+		return DeserializeArray(bufReader, _type)
+	case (_type >= FIXMAP && _type <= 0x8F) || _type == MAP16 || _type == MAP32:
+		return DeserializeMap(bufReader, _type)
 	default:
-		fmt.Printf("Unknown type: %v", string(_type))
-		return Value{}, errors.New("invalid type")
+		return nil, errors.New("invalid type")
 	}
 }
 
-func (m *MessagePacker) readBytes(n int) (line []byte, err error) {
+func readBytes(reader *bufio.Reader, n int) (line []byte, err error) {
 	for i := 0; i < n; i++ {
-		b, err := m.reader.ReadByte()
+		b, err := reader.ReadByte()
 		if err != nil {
 			return nil, err
 		}
@@ -62,237 +48,214 @@ func (m *MessagePacker) readBytes(n int) (line []byte, err error) {
 	return line, nil
 }
 
-func (m *MessagePacker) deserializeInteger(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "integer"
+func DeserializeInteger(reader *bufio.Reader, _type byte) (any, error) {
 	switch _type {
 	case INT8:
-		number, err := m.reader.ReadByte()
+		number, err := reader.ReadByte()
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		if _type == INT8 {
-			v.val = int8(number)
-		}
-		return v, nil
+		return int8(number), nil
 	case INT16:
-		number, err := m.readBytes(2)
+		number, err := readBytes(reader, 2)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = int16(binary.BigEndian.Uint16(number))
-		return v, nil
+		return int16(binary.BigEndian.Uint16(number)), nil
 	case INT32:
-		number, err := m.readBytes(4)
+		number, err := readBytes(reader, 4)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = int32(binary.BigEndian.Uint32(number))
-		return v, nil
+		return int32(binary.BigEndian.Uint32(number)), nil
 	case INT64:
-		number, err := m.readBytes(8)
+		number, err := readBytes(reader, 8)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = int64(binary.BigEndian.Uint64(number))
-		return v, nil
+		return int64(binary.BigEndian.Uint64(number)), nil
 	default:
-		return v, fmt.Errorf("failed to decode the integer")
+		return nil, errors.New("failed to decode the integer")
 	}
 }
 
-func (m *MessagePacker) deserializeUnsignedInteger(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "Unsigned-integer"
+func DeserializeUnsignedInteger(reader *bufio.Reader, _type byte) (any, error) {
 	switch _type {
 	case UINT8:
-		number, err := m.reader.ReadByte()
+		number, err := reader.ReadByte()
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = uint8(number)
-		return v, nil
+		return uint8(number), nil
 	case UINT16:
-		number, err := m.readBytes(2)
+		number, err := readBytes(reader, 2)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = binary.BigEndian.Uint16(number)
-		return v, nil
+		return binary.BigEndian.Uint16(number), nil
 	case UINT32:
-		number, err := m.readBytes(4)
+		number, err := readBytes(reader, 4)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = binary.BigEndian.Uint32(number)
-		return v, nil
+		return binary.BigEndian.Uint32(number), nil
 	case UINT64:
-		number, err := m.readBytes(8)
+		number, err := readBytes(reader, 8)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		v.val = binary.BigEndian.Uint64(number)
-		return v, nil
+		return binary.BigEndian.Uint64(number), nil
 	default:
-		return v, fmt.Errorf("failed to decode the integer")
+		return nil, errors.New("failed to decode the integer")
 	}
 }
 
-func (m *MessagePacker) deserializeNil() (Value, error) {
-	return Value{typ: "nil", val: nil}, nil
+func DeserializeNil() (any, error) {
+	return nil, nil
 }
 
-func (m *MessagePacker) deserializeBool(_type byte) (Value, error) {
+func DeserializeBool(_type byte) (any, error) {
 	if _type == FALSE {
-		return Value{typ: "boolen", val: false}, nil
+		return false, nil
 	}
-	return Value{typ: "boolen", val: true}, nil
+	return true, nil
 }
 
-func (m *MessagePacker) deserializeFloat(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "float"
+func DeserializeFloat(reader *bufio.Reader, _type byte) (any, error) {
 	switch _type {
 	case FLOAT:
-		number, err := m.readBytes(4)
+		number, err := readBytes(reader, 4)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		Uint32Bits := binary.BigEndian.Uint32(number)
-		v.val = math.Float32frombits(Uint32Bits)
-		return v, nil
+		return math.Float32frombits(Uint32Bits), nil
 	case DOUBLE:
-		number, err := m.readBytes(8)
+		number, err := readBytes(reader, 8)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		Uint64Bits := binary.BigEndian.Uint64(number)
-		v.val = math.Float64frombits(Uint64Bits)
-		return v, nil
+		return math.Float64frombits(Uint64Bits), nil
 	default:
-		return v, errors.New("failed to decode float")
+		return nil, errors.New("failed to decode float")
 	}
 }
 
-func (m *MessagePacker) deserializeString(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "string"
-
+func DeserializeString(reader *bufio.Reader, _type byte) (any, error) {
 	var length int
-	switch _type {
-	case RAW8:
-		lenByte, err := m.reader.ReadByte()
+	switch {
+	case _type >= FIXRAW && _type <= 0xbf:
+		length = int(_type & 0x1f)
+		if length > 31 {
+			return nil, errors.New("invalid string length")
+		}
+	case _type == RAW8:
+		lenByte, err := reader.ReadByte()
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(lenByte)
-	case RAW16:
+	case _type == RAW16:
 		var len16 uint16
-		err := binary.Read(m.reader, binary.BigEndian, &len16)
+		err := binary.Read(reader, binary.BigEndian, &len16)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len16)
-	case RAW32:
+	case _type == RAW32:
 		var len32 uint32
-		err := binary.Read(m.reader, binary.BigEndian, &len32)
+		err := binary.Read(reader, binary.BigEndian, &len32)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len32)
 	default:
-		return v, errors.New("failed to decode string")
+		return nil, errors.New("failed to decode string")
 	}
 
-	data, err := m.readBytes(length)
+	data, err := readBytes(reader, length)
 	if err != nil {
-		return v, err
+		return nil, err
 	}
 
-	v.val = string(data)
-	return v, nil
+	return string(data), nil
 }
 
-func (m *MessagePacker) deserializeArray(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "array"
+func DeserializeArray(reader *bufio.Reader, _type byte) (any, error) {
 	var arr []any
 	var length int
 
 	switch {
-	case _type >= FIXARRAY && _type <= FIXARRAY|0x0F:
+	case _type >= FIXARRAY && _type <= 0x9F:
 		length = int(_type & 0x0F)
 	case _type == ARRAY16:
 		var len16 uint16
-		err := binary.Read(m.reader, binary.BigEndian, &len16)
+		err := binary.Read(reader, binary.BigEndian, &len16)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len16)
 	case _type == ARRAY32:
 		var len32 uint32
-		err := binary.Read(m.reader, binary.BigEndian, &len32)
+		err := binary.Read(reader, binary.BigEndian, &len32)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len32)
 	default:
-		return v, errors.New("failed to decode array")
+		return nil, errors.New("failed to decode array")
 	}
 
 	for i := 0; i < length; i++ {
-		element, err := m.deserialize()
+		element, err := Deserialize(reader)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
-		arr = append(arr, element.val)
+		arr = append(arr, element)
 	}
 
-	v.val = arr
-	return v, nil
+	return arr, nil
 }
 
-func (m *MessagePacker) deserializeMap(_type byte) (Value, error) {
-	v := Value{}
-	v.typ = "map"
+func DeserializeMap(reader *bufio.Reader, _type byte) (any, error) {
 	mapData := make(map[any]any)
 	var length int
 
 	switch {
-	case _type >= 0x80 && _type <= 0x8F:
+	case _type >= FIXMAP && _type <= 0x8F:
 		length = int(_type & 0x0F)
 	case _type == MAP16:
 		var len16 uint16
-		err := binary.Read(m.reader, binary.BigEndian, &len16)
+		err := binary.Read(reader, binary.BigEndian, &len16)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len16)
 	case _type == MAP32:
 		var len32 uint32
-		err := binary.Read(m.reader, binary.BigEndian, &len32)
+		err := binary.Read(reader, binary.BigEndian, &len32)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 		length = int(len32)
 	default:
-		return v, errors.New("failed to decode map")
+		return nil, errors.New("failed to decode map")
 	}
 
 	for i := 0; i < length; i++ {
-		key, err := m.deserialize()
+		key, err := Deserialize(reader)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 
-		value, err := m.deserialize()
+		value, err := Deserialize(reader)
 		if err != nil {
-			return v, err
+			return nil, err
 		}
 
-		mapData[key.val] = value.val
+		mapData[key] = value
 	}
 
-	v.val = mapData
-	return v, nil
+	return mapData, nil
 }
