@@ -6,8 +6,8 @@ const (
 	FALSE = 0xc2
 	TRUE  = 0xc3
 
-	FLOAT  = 0xca
-	DOUBLE = 0xcb
+	FLOAT  = 0xca //float32
+	DOUBLE = 0xcb //float64
 
 	UINT8  = 0xcc
 	UINT16 = 0xcd
@@ -18,9 +18,10 @@ const (
 	INT32  = 0xd2
 	INT64  = 0xd3
 
-	RAW8    = 0xd9
-	RAW16   = 0xda
-	RAW32   = 0xdb
+	RAW8  = 0xd9 //str8
+	RAW16 = 0xda //str16
+	RAW32 = 0xdb //str32
+
 	ARRAY16 = 0xdc
 	ARRAY32 = 0xdd
 	MAP16   = 0xde
