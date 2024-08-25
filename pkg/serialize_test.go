@@ -27,13 +27,19 @@ func TestSerialize(t *testing.T) {
 		{"float32", float32(42.0), func() []byte {
 			buf := new(bytes.Buffer)
 			buf.WriteByte(FLOAT)
-			binary.Write(buf, binary.BigEndian, float32(42.0))
+			err := binary.Write(buf, binary.BigEndian, float32(42.0))
+			if err != nil {
+				t.Errorf("Error writing float32: %v", err)
+			}
 			return buf.Bytes()
 		}(), false},
 		{"float64", float64(42.0), func() []byte {
 			buf := new(bytes.Buffer)
 			buf.WriteByte(DOUBLE)
-			binary.Write(buf, binary.BigEndian, float64(42.0))
+			err := binary.Write(buf, binary.BigEndian, float64(42.0))
+			if err != nil {
+				t.Errorf("Error writing float64: %v", err)
+			}
 			return buf.Bytes()
 		}(), false},
 		{"string", "hello", append([]byte{byte(FIXRAW | 5)}, []byte("hello")...), false},

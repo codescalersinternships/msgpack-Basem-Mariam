@@ -40,7 +40,11 @@ func serializeUint8(n uint8) ([]byte, error) {
 func serializeUint16(n uint16) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(UINT16)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.Bytes(), nil
 }
 
@@ -48,7 +52,10 @@ func serializeUint16(n uint16) ([]byte, error) {
 func serializeUint32(n uint32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(UINT32)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -56,7 +63,10 @@ func serializeUint32(n uint32) ([]byte, error) {
 func serializeUint64(n uint64) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(UINT64)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -72,7 +82,10 @@ func serializeInt8(n int8) ([]byte, error) {
 func serializeInt16(n int16) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(INT16)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -80,7 +93,10 @@ func serializeInt16(n int16) ([]byte, error) {
 func serializeInt32(n int32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(INT32)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -88,7 +104,10 @@ func serializeInt32(n int32) ([]byte, error) {
 func serializeInt64(n int64) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(INT64)
-	binary.Write(buf, binary.BigEndian, n)
+	err := binary.Write(buf, binary.BigEndian, n)
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -96,7 +115,10 @@ func serializeInt64(n int64) ([]byte, error) {
 func serializeFloat32(n float32) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(FLOAT)
-	binary.Write(buf, binary.BigEndian, float32(n))
+	err := binary.Write(buf, binary.BigEndian, float32(n))
+	if err != nil {
+		return nil, err
+	}
 	return buf.Bytes(), nil
 }
 
@@ -104,7 +126,11 @@ func serializeFloat32(n float32) ([]byte, error) {
 func serializeFloat64(n float64) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	buf.WriteByte(DOUBLE)
-	binary.Write(buf, binary.BigEndian, float64(n))
+	err := binary.Write(buf, binary.BigEndian, float64(n))
+	if err != nil {
+		return nil, err
+	}
+
 	return buf.Bytes(), nil
 }
 
@@ -120,10 +146,17 @@ func serializeString(s string) ([]byte, error) {
 		buf.WriteByte(byte(strLen))
 	} else if strLen <= 65535 {
 		buf.WriteByte(RAW16) // str16
-		binary.Write(buf, binary.BigEndian, uint16(strLen))
+		err := binary.Write(buf, binary.BigEndian, uint16(strLen))
+		if err != nil {
+			return nil, err
+		}
+
 	} else if strLen <= 4294967295 {
 		buf.WriteByte(RAW32) // str32
-		binary.Write(buf, binary.BigEndian, uint32(strLen))
+		err := binary.Write(buf, binary.BigEndian, uint32(strLen))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, fmt.Errorf("string too long to serialize")
 	}
@@ -143,10 +176,17 @@ func serializeArray(arr interface{}) ([]byte, error) {
 		buf.WriteByte(byte(FIXARRAY | length)) // FixArray
 	} else if length <= 65535 {
 		buf.WriteByte(ARRAY16) // array16
-		binary.Write(buf, binary.BigEndian, uint16(length))
+		err := binary.Write(buf, binary.BigEndian, uint16(length))
+		if err != nil {
+			return nil, err
+		}
+
 	} else if length <= 4294967295 {
 		buf.WriteByte(ARRAY32) // array32
-		binary.Write(buf, binary.BigEndian, uint32(length))
+		err := binary.Write(buf, binary.BigEndian, uint32(length))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, fmt.Errorf("array too long to serialize")
 	}
@@ -173,10 +213,16 @@ func serializeMap(m interface{}) ([]byte, error) {
 		buf.WriteByte(byte(FIXMAP | length)) // FixMap
 	} else if length <= 65535 {
 		buf.WriteByte(MAP16) // map16
-		binary.Write(buf, binary.BigEndian, uint16(length))
+		err := binary.Write(buf, binary.BigEndian, uint16(length))
+		if err != nil {
+			return nil, nil
+		}
 	} else if length <= 4294967295 {
 		buf.WriteByte(MAP32) // map32
-		binary.Write(buf, binary.BigEndian, uint32(length))
+		err := binary.Write(buf, binary.BigEndian, uint32(length))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, fmt.Errorf("map too long to serialize")
 	}
