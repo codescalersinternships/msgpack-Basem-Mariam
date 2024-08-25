@@ -1,6 +1,5 @@
 package msgpack
 
-
 const (
 	NIL = 0xc0
 
@@ -19,6 +18,7 @@ const (
 	INT32  = 0xd2
 	INT64  = 0xd3
 
+	RAW8    = 0xd9
 	RAW16   = 0xda
 	RAW32   = 0xdb
 	ARRAY16 = 0xdc
@@ -49,4 +49,3 @@ const (
 	SPECIAL_INT32 = 2 << (16 - 2)
 	SPECIAL_INT64 = 2 << (32 - 2)
 )
-
